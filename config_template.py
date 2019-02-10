@@ -37,19 +37,21 @@ MQ_SENSORS = {
     'mq2': {
         'pin': 0,
         'r0_rs_air': 9.48,
-        'r0': # TO BE FILLED IN 
-    },
-    'mq9': {
-        'pin': 1,
-        'r0_rs_air': 9.74,
-        'r0': # TO BE FILLED IN 
-    },
-    'mq5': {
-        'pin': 2,
-        'r0_rs_air': 6.45,
-        'r0': # TO BE FILLED IN 
+        'r0': 1.72
     }
 }
+'''
+'mq9': {
+    'pin': 1,
+    'r0_rs_air': 9.74,
+    'r0': 0.37
+},
+'mq5': {
+    'pin': 2,
+    'r0_rs_air': 6.45,
+    'r0': 5.03
+}
+'''
 
 
  
