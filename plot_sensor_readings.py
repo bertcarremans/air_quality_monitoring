@@ -1,10 +1,6 @@
 # ------------------------------------------------------------------
-#           Air Quality Logger
-# Read sensor data from Firebase and
-# plot with Dash
-#
-# This script can be run on a web host
-# like PythonAnywhere.com
+#                           Air Quality Logger
+# Read sensor data from Firebase and plot with Dash
 #
 # Author : Bert Carremans
 # Date   : 09/01/2018
@@ -16,17 +12,11 @@
 # AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN 
 # CONNECTION WITH THE SCRIPT OR THE USE OR OTHER DEALINGS IN THE SCRIPT.
 # ------------------------------------------------------------------
-# On this page https://github.com/conradho/dashingdemo you can find how to run a Dash app on PythonAnywhere
-# Here is how to use a virtualenv on PythonAnywhere https://help.pythonanywhere.com/pages/Virtualenvs/
-
 import config as cfg
 from pathlib import Path
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import firestore
-from datetime import datetime
-from datetime import timedelta
-import pytz
 
 import dash
 import dash_core_components as dcc
@@ -45,67 +35,136 @@ firebase_admin.initialize_app(cred)
 db = firestore.client()
 
 # Read data from Firebase
-# Order by date and select results of the last hour
-# Current time localized to timezone of Brussels
-brussels_tz = pytz.timezone('Europe/Brussels')
-one_hour_ago = brussels_tz.localize(datetime.now()) - timedelta(minutes=60)
+# Order by date and select last 30 results
 
-# Preparing the data
-mq2_lpg_ppm_vals = []
-mq2_co_ppm_vals = []
+# Initializing lists/dicts to contain the data
 timestamps = []
+temperatures = []
+humidities = []
+pressures = []
+ppm_values = {}
+for mq_sensor in cfg.MQ_SENSORS.keys():
+    ppm_values[mq_sensor] = {}
 
-docs = db.collection(cfg.FIREBASE_DB_NAME).order_by(u'date').where(u'date', '>=', one_hour_ago).get()
+for mq_sensor in cfg.MQ_SENSORS.keys():
+    for gas in cfg.CURVES[mq_sensor].keys():
+        ppm_values[mq_sensor][gas] = []
+
+docs = db.collection(cfg.FIREBASE_DB_NAME).order_by('date', direction=firestore.Query.DESCENDING).limit(30).get()
+print(docs)
 for doc in docs:
     data = doc.to_dict()
-    mq2_lpg_ppm_vals.append(data['mq2_lpg_ppm'])
-    mq2_co_ppm_vals.append(data['mq2_co_ppm'])
 
     # Extract hour, minutes and seconds
     timestamps.append(data['date'].strftime('%H:%M:%S'))
 
+    # Extract temperatures, humidities and pressures
+    temperatures.append(data['temperature'])
+    humidities.append(data['humidity'])
+    pressures.append(data['pressure'])
 
-# Preparing the Dash app
-# CSS is automatically loaded from the assets folder
-app = dash.Dash(__name__)
-app.title = 'Indoor Air Quality Dashboard'
-# Setting up layout
-app.layout = html.Div(children=[
-    html.H1(style={'textAlign':'center'}, children='Indoor Air Quality Dashboard'),
+    # Extract the gas concentration values per sensor
+    for mq_sensor in cfg.MQ_SENSORS.keys():
+        for gas in cfg.CURVES[mq_sensor].keys():
+            sensor_gas_key = mq_sensor + '_' + gas + '_ppm'
+            ppm_values[mq_sensor][gas].append(data[sensor_gas_key])
+
+# Reverse ordering of the data as we extracted the last entries in the collection in Firestore
+timestamps.reverse()
+temperatures.reverse()
+humidities.reverse()
+pressures.reverse()
+
+# Creating graphs list with data of bme680 sensor
+graphs = [
     dcc.Graph(
-        id='mq2_lpg_ppm_vals',
+        id='temperature',
         figure={
             'data':[{
                 'x':timestamps,
-                'y':mq2_lpg_ppm_vals,
+                'y':temperatures,
                 'type':'line',
-                'name': 'LPG Concentration on MQ2 sensor',
+                'name': 'Temperature',
                 'line': {'width':2, 'color': '#542788'}
                 }],
             'layout':{
-                'title': 'LPG Concentration on MQ2 sensor',
-                'yaxis': {'title': 'ppm'},
+                'title': 'Temperature',
+                'yaxis': {'title': 'Celsius'},
                 'xaxis': {'title': 'Timestamp', 'tickvals':timestamps}
             }
         }
     ),
     dcc.Graph(
-        id='mq2_co_ppm_vals',
+        id='humidity',
         figure={
             'data':[{
                 'x':timestamps,
-                'y':mq2_co_ppm_vals,
+                'y':humidities,
                 'type':'line',
-                'name':'CO Concentration on MQ2 sensor',
-                'line':{'width':2, 'color': '#b35806'}}
-            ],
+                'name': 'Humidity',
+                'line': {'width':2, 'color': '#542788'}
+                }],
             'layout':{
-                'title': 'CO Concentration on MQ2 sensor',
-                'yaxis': {'title': 'ppm'},
+                'title': 'Humidity',
+                'yaxis': {'title': '%'},
+                'xaxis': {'title': 'Timestamp', 'tickvals':timestamps}
+            }
+        }
+    ),
+    dcc.Graph(
+        id='pressure',
+        figure={
+            'data':[{
+                'x':timestamps,
+                'y':pressures,
+                'type':'line',
+                'name': 'Pressure',
+                'line': {'width':2, 'color': '#542788'}
+                }],
+            'layout':{
+                'title': 'Pressure',
+                'yaxis': {'title': 'hPa'},
                 'xaxis': {'title': 'Timestamp', 'tickvals':timestamps}
             }
         }
     )
+]
+
+# Appending data of MQ sensors to graphs
+for mq_sensor in cfg.MQ_SENSORS.keys():
+    for gas in cfg.CURVES[mq_sensor].keys():
+        sensor_gas_key = mq_sensor + '_' + gas + '_ppm'
+        title = gas + ' concentration on '+ mq_sensor + ' sensor'
+        data = ppm_values[mq_sensor][gas]
+        data.reverse()
+
+        graphs.append(dcc.Graph(
+            id=sensor_gas_key,
+            figure={
+                'data': [{
+                    'x': timestamps,
+                    'y': data,
+                    'type':'line',
+                    'name': title,
+                    'line': {'width':2}
+                }],
+                'layout': {
+                    'title': title,
+                    'yaxis': {'title': 'ppm'},
+                    'xaxis': {'title': 'Timestamp', 'tickvals':timestamps}
+                }
+            }
+        ))
+
+# Preparing the Dash app
+# CSS is automatically loaded from the assets folder
+app = dash.Dash(__name__)
+app.title = 'Indoor Air Quality Dashboard'
+
+app.layout = html.Div([
+    html.H1(style={'textAlign':'center'}, children='Indoor Air Quality Dashboard'),
+    html.Div(id='container'),
+    html.Div(graphs)
 ])
 
 if __name__ == '__main__':
