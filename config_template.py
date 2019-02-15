@@ -13,7 +13,6 @@
 VC = 5.0  # Circuit voltage
 AR_MAX = 1023  # Maximum output value of the analogRead method
 
-
 # ------------------------------------------------------------------
 #                      Sensor reading parameters
 # ------------------------------------------------------------------
@@ -22,38 +21,34 @@ R0_INTERVAL = 0.5  # number of seconds between each reading for R0
 NB_RS_READ = 5  # number of readings for the sensor value
 RS_INTERVAL = 0.05  # number of seconds between each reading for Rs
 
-
 # ------------------------------------------------------------------
 #                             MQ sensors
 # ------------------------------------------------------------------
 # http://wiki.seeedstudio.com/Grove-Gas_Sensor-MQ2/
 # http://wiki.seeedstudio.com/Grove-Gas_Sensor-MQ9/
 # http://wiki.seeedstudio.com/Grove-Gas_Sensor-MQ5/
-
 # pin: analog port numbers on the GrovePi
 # r0_rs_air: R0/Rs ratio in clean air
 # r0: this values should be filled in after measuring it with get_R0_values.py
+# CAUTION : the r0_rs_air values are extracted by sight on the graphs and therefore will be an approximation
+# To be used at your own risk
 MQ_SENSORS = {
     'mq2': {
         'pin': 0,
         'r0_rs_air': 9.48,
-        'r0': 1.72
+        'r0': # FILL IN
+    },
+    'mq9': {
+        'pin': 1,
+        'r0_rs_air': 9.74,
+        'r0': # FILL IN
+    },
+    'mq5': {
+        'pin': 2,
+        'r0_rs_air': 6.45,
+        'r0': # FILL IN
     }
 }
-'''
-'mq9': {
-    'pin': 1,
-    'r0_rs_air': 9.74,
-    'r0': 0.37
-},
-'mq5': {
-    'pin': 2,
-    'r0_rs_air': 6.45,
-    'r0': 5.03
-}
-'''
-
-
  
 # ------------------------------------------------------------------
 #                    Curves on the data sheets
@@ -61,8 +56,9 @@ MQ_SENSORS = {
 # https://raw.githubusercontent.com/SeeedDocument/Grove-Gas_Sensor-MQ2/master/res/MQ-2.pdf
 # https://raw.githubusercontent.com/SeeedDocument/Grove-Gas_Sensor-MQ9/master/res/MQ-9.pdf
 # https://raw.githubusercontent.com/SeeedDocument/Grove-Gas_Sensor-MQ5/master/res/MQ-5.pdf
-# x and y values are extracted from curves on data sheets with Webplotdigitizer
-# https://automeris.io/WebPlotDigitizer/
+# x and y values are extracted from curves on data sheets with Webplotdigitizer (https://automeris.io/WebPlotDigitizer/)
+# CAUTION : these values are extracted by sight on the graphs and therefore will be an approximation
+# To be used at your own risk
 CURVES = {
     'mq2': {
         'co': {
@@ -147,21 +143,25 @@ CURVES = {
     }
 }
 
-
+# ------------------------------------------------------------------
+#                   Upper bounds for gas ppm values
+# ------------------------------------------------------------------
+# Below you find some web pages for inspiration to set the upper bounds
+# https://en.wikipedia.org/wiki/Liquefied_petroleum_gas
+# https://www.cdc.gov/niosh/idlh/74986.html
+# https://www.cpsc.gov/Safety-Education/Safety-Education-Centers/Carbon-Monoxide-Information-Center/Carbon-Monoxide-Questions-and-Answers
+# https://www1.agric.gov.ab.ca/$department/deptdocs.nsf/all/agdex9038
+# https://ohsonline.com/articles/2011/09/01/monitoring-h2s-to-meet-new-exposure-standards.aspx
+UPPERBOUNDS = {
+    'lpg' : # FILL IN,
+    'propane' : # FILL IN,
+    'co' : # FILL IN,
+    'ch4' : # FILL IN,
+    'h2' : # FILL IN
+}
 
 # ------------------------------------------------------------------
-#           Upper and lower bounds for sensor readings
-# ------------------------------------------------------------------
-TEMP_LOWERBOUND = 16
-TEMP_UPPERBOUND = 24
-HUMID_LOWERBOUND = 30
-HUMID_UPPERBOUND = 60
-LPG_UPPERBOUND = 2000  # https://en.wikipedia.org/wiki/Liquefied_petroleum_gas
-CO_UPPERBOUND = 1000  # https://en.wikipedia.org/wiki/Carbon_monoxide_poisoning
-HEXANE_UPPERBOUND = 2500  # https://en.wikipedia.org/wiki/Hexane#Safety
-
-# ------------------------------------------------------------------
-#                           Measurment units
+#                           Measurement units
 # ------------------------------------------------------------------
 UNITS = {
     'temperature' : 'Celsius',
@@ -178,23 +178,25 @@ UNITS = {
     'smoke' : 'ppm',
 }
 
-
 # ------------------------------------------------------------------
 #                               Firebase
 # ------------------------------------------------------------------
-FIREBASE_CREDS_JSON = # TO BE FILLED IN 
+FIREBASE_CREDS_JSON = # FILL IN
 FIREBASE_INTERVAL = 60
-FIREBASE_DB_NAME = u'sensor_readings'
+FIREBASE_DB_NAME = # FILL IN
 
 # ------------------------------------------------------------------
-#                             Notification
+#                        Alert notifications
 # ------------------------------------------------------------------
+# Gases to send an alert notification for when reaching a critical level
+ALERT_GASES = ['lpg', 'co', 'propane', 'ch4', 'h2']
+
+# Sensor of which values are used to send alert notifications
+ALERT_SENSOR = 'mq2'
+
+# Time interval (in minutes) to check again for critical gas concentrations
+ALERT_INTERVAL = 60
+
 # SMTPLIB
-EMAIL = # TO BE FILLED IN 
-EMAIL_PW = # TO BE FILLED IN 
-
-# Tweepy
-CONSUMER_KEY = # TO BE FILLED IN 
-CONSUMER_SECRET = # TO BE FILLED IN 
-ACCESS_TOKEN = # TO BE FILLED IN 
-ACCESS_TOKEN_SECRET = # TO BE FILLED IN 
+EMAIL = # FILL IN
+EMAIL_PW = # FILL IN  # Application-specific password https://support.google.com/mail/?p=InvalidSecondFactor
